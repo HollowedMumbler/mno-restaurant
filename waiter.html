@@ -45,6 +45,7 @@
       <p class="text-sm text-gray-400 mt-0.5">Take orders and monitor food ready for pickup.</p>
     </div>
     <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+
       <button onclick="setWaiterTab('order')" id="wtab-order"
         class="px-4 py-1.5 rounded-lg text-sm font-500 transition-all bg-gray-900 text-white">
         Take Order
@@ -419,10 +420,14 @@ function renderWaiterAlerts() {
   }
 }
 
-function acknowledgeReturn(id) {
+function confirmPickup(id) {
   orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
   const o = orders.find(o => o.id === id);
-  if (o) { o.status = 'waiter_acknowledged'; save(); renderWaiterAlerts(); }
+  if (o) { o.status = 'picked_up'; save(); renderWaiterAlerts(); }
+}
+
+
+function acknowledgeReturn(id) {
 }
 
 
