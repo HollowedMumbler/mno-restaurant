@@ -420,7 +420,15 @@ function renderWaiterAlerts() {
   }
 }
 
-
+function confirmPickup(id) {
+  event.target.closest('.bg-white.border-2').remove();
+  const remaining = document.querySelectorAll('#waiter-ready-orders .bg-white.border-2');
+  if (remaining.length === 0) {
+    document.getElementById('waiter-ready-empty').classList.remove('hidden');
+    document.getElementById('ready-count-badge').classList.add('hidden');
+    document.getElementById('waiter-notif-dot').classList.add('hidden');
+  }
+}
 function acknowledgeReturn(id) {
 }
 
