@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MNO – Manager Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family: 'DM Sans', sans-serif; }
+  .mono { font-family: 'DM Mono', monospace; }
+  .fade-in { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Top Bar -->
+<header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div>
+      <span class="text-lg font-600 tracking-tight text-gray-900">MNO</span>
+      <span class="text-lg font-300 text-gray-400 ml-1">Restaurant</span>
+      <span class="ml-3 text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full font-500">Manager</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <nav class="flex gap-3 text-sm text-gray-400">
+        <a href="waiter.html" class="hover:text-gray-700 transition-colors">Waiter</a>
+        <a href="cashier.html" class="hover:text-gray-700 transition-colors">Cashier</a>
+        <a href="kitchen.html" class="hover:text-gray-700 transition-colors">Kitchen</a>
+      </nav>
+      <div class="text-sm text-gray-400 mono" id="clock"></div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-6 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-600 text-gray-900">Manager Dashboard</h1>
+      <p class="text-sm text-gray-400 mt-0.5">Overview, menu management, inventory, and sales records.</p>
+    </div>
+  </div>
+
+  <!-- Quick Action Buttons -->
+  <div class="grid grid-cols-3 gap-4 mb-8">
+    <button onclick="setMgrPanel('summary')" id="mpbtn-summary"
+      class="mgr-panel-btn bg-gray-900 text-white rounded-2xl p-5 text-left transition-all hover:opacity-90">
+      <p class="text-xs uppercase tracking-widest opacity-60 mb-2">Today</p>
+      <p class="text-lg font-600">Daily Summary</p>
+      <p class="text-xs opacity-50 mt-1">Sales totals &amp; breakdown</p>
+    </button>
+    <button onclick="setMgrPanel('menu')" id="mpbtn-menu"
+      class="mgr-panel-btn bg-white border border-gray-100 text-gray-800 rounded-2xl p-5 text-left transition-all hover:border-gray-300 hover:shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-gray-400 mb-2">Manage</p>
+      <p class="text-lg font-600">Menu Items</p>
+      <p class="text-xs text-gray-400 mt-1">Add, edit, or remove items</p>
+    </button>
+    <button onclick="setMgrPanel('inventory')" id="mpbtn-inventory"
+      class="mgr-panel-btn bg-white border border-gray-100 text-gray-800 rounded-2xl p-5 text-left transition-all hover:border-gray-300 hover:shadow-sm">
+      <p class="text-xs uppercase tracking-widest text-gray-400 mb-2">Track</p>
+      <p class="text-lg font-600">Inventory</p>
+      <p class="text-xs text-gray-400 mt-1">Stock levels &amp; usage</p>
+    </button>
+  </div>
+
+  <!-- ── SUMMARY PANEL ── -->
+  <div id="mgr-panel-summary">
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="bg-white border border-gray-100 rounded-2xl p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Total Sales Today</p>
+        <p class="mono text-3xl font-600 text-gray-900" id="stat-total">₱0.00</p>
+      </div>
+      <div class="bg-white border border-gray-100 rounded-2xl p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Orders Completed</p>
+        <p class="mono text-3xl font-600 text-gray-900" id="stat-count">0</p>
+      </div>
+    </div>
+
+    <!-- Dated Sales -->
+    <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-5">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <p class="text-sm font-600 text-gray-700">Sales by Date</p>
+        <input type="date" id="sales-date-filter" onchange="renderManagerLog()"
+          class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
+            <th class="text-left px-5 py-3">Order #</th>
+            <th class="text-left px-5 py-3">Table</th>
+            <th class="text-left px-5 py-3">Items</th>
+            <th class="text-left px-5 py-3">Time</th>
+            <th class="text-right px-5 py-3">Total</th>
+          </tr>
+        </thead>
+        <tbody id="manager-log"></tbody>
+      </table>
+      <div id="manager-empty" class="text-center py-10 text-gray-300 text-sm">No sales records found</div>
+    </div>
+  </div>
+
+  <!-- ── MENU PANEL ── -->
+  <div id="mgr-panel-menu" class="hidden">
+    <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <p class="text-sm font-600 text-gray-700">Menu Items</p>
+        <button onclick="openAddItemModal()" class="bg-gray-900 text-white text-xs px-4 py-2 rounded-xl hover:bg-gray-700 transition-colors">+ New Item</button>
+      </div>
+      <div id="menu-manage-list" class="divide-y divide-gray-50"></div>
+    </div>
+  </div>
+
+  <!-- ── INVENTORY PANEL ── -->
+  <div id="mgr-panel-inventory" class="hidden">
+    <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <p class="text-sm font-600 text-gray-700">Kitchen Ingredients</p>
+        <button onclick="openAddIngredientModal()" class="bg-gray-900 text-white text-xs px-4 py-2 rounded-xl hover:bg-gray-700 transition-colors">+ Add Ingredient</button>
+      </div>
+      <!-- Category Slider -->
+      <div class="px-5 py-3 border-b border-gray-100 overflow-x-auto">
+        <div class="flex gap-2 whitespace-nowrap" id="inv-cat-tabs"></div>
+      </div>
+      <!-- Ingredient List -->
+      <div id="ingredient-list" class="divide-y divide-gray-50"></div>
+      <div id="inventory-empty" class="text-center py-10 text-gray-300 text-sm hidden">No ingredients in this category</div>
+    </div>
+  </div>
+</main>
+
+<!-- Add / Edit Menu Item Modal -->
+<div id="add-item-modal" class="hidden fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-xl">
+    <p class="font-600 text-gray-900 mb-4" id="add-item-title">New Menu Item</p>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs text-gray-400 uppercase tracking-wide">Item Name</label>
+        <input id="new-item-name" type="text" placeholder="e.g. Crispy Pata"
+          class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 uppercase tracking-wide">Price (₱)</label>
+        <input id="new-item-price" type="number" placeholder="0"
+          class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 uppercase tracking-wide">Category</label>
+        <select id="new-item-cat" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200">
+          <option>Appetizers</option><option>Mains</option><option>Sides</option><option>Desserts</option><option>Drinks</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="closeAddItemModal()" class="flex-1 border border-gray-200 rounded-xl py-2 text-sm text-gray-500 hover:bg-gray-50">Cancel</button>
+      <button onclick="saveNewItem()" class="flex-1 bg-gray-900 text-white rounded-xl py-2 text-sm hover:bg-gray-700">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Ingredient Modal -->
+<div id="add-ingredient-modal" class="hidden fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-xl">
+    <p class="font-600 text-gray-900 mb-4" id="add-ingredient-title">Add Ingredient</p>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs text-gray-400 uppercase tracking-wide">Ingredient Name</label>
+        <input id="ing-name" type="text" placeholder="e.g. Chicken Breast"
+          class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-gray-400 uppercase tracking-wide">Amount</label>
+          <input id="ing-amount" type="number" min="0" placeholder="0"
+            class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 uppercase tracking-wide">Unit</label>
+          <select id="ing-unit" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200">
+            <option>kg</option><option>g</option><option>L</option><option>mL</option><option>pcs</option><option>packs</option><option>bottles</option><option>cans</option><option>bags</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 uppercase tracking-wide">Category</label>
+        <select id="ing-cat" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200">
+          <option>Proteins</option><option>Vegetables</option><option>Fruits</option><option>Dairy</option><option>Grains & Starches</option><option>Condiments & Sauces</option><option>Oils & Fats</option><option>Spices & Herbs</option><option>Beverages</option><option>Others</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="closeAddIngredientModal()" class="flex-1 border border-gray-200 rounded-xl py-2 text-sm text-gray-500 hover:bg-gray-50">Cancel</button>
+      <button onclick="saveIngredient()" class="flex-1 bg-gray-900 text-white rounded-xl py-2 text-sm hover:bg-gray-700">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SHARED MENU DATA ──────────────────────────────────────────
+const MENU = [
+  { id:1,  name:'Calamari Rings',      price:145, cat:'Appetizers' },
+  { id:2,  name:'Chicken Wings',        price:165, cat:'Appetizers' },
+  { id:3,  name:'Cheese Sticks',        price:95,  cat:'Appetizers' },
+  { id:4,  name:'Nachos with Salsa',    price:120, cat:'Appetizers' },
+  { id:5,  name:'Soup of the Day',      price:85,  cat:'Appetizers' },
+  { id:6,  name:'Grilled Chicken',      price:220, cat:'Mains' },
+  { id:7,  name:'Pork Sinigang',        price:195, cat:'Mains' },
+  { id:8,  name:'Beef Steak',           price:295, cat:'Mains' },
+  { id:9,  name:'Pork BBQ Ribs',        price:320, cat:'Mains' },
+  { id:10, name:'Seafood Pasta',        price:260, cat:'Mains' },
+  { id:11, name:'Fish & Chips',         price:210, cat:'Mains' },
+  { id:12, name:'Vegetable Stir Fry',   price:175, cat:'Mains' },
+  { id:13, name:'Garlic Rice',          price:60,  cat:'Sides' },
+  { id:14, name:'Steamed Rice',         price:40,  cat:'Sides' },
+  { id:15, name:'Mixed Vegetables',     price:80,  cat:'Sides' },
+  { id:16, name:'French Fries',         price:75,  cat:'Sides' },
+  { id:17, name:'Coleslaw',            price:55,  cat:'Sides' },
+  { id:18, name:'Halo-Halo',           price:120, cat:'Desserts' },
+  { id:19, name:'Chocolate Lava Cake', price:135, cat:'Desserts' },
+  { id:20, name:'Leche Flan',          price:95,  cat:'Desserts' },
+  { id:21, name:'Mango Panna Cotta',   price:110, cat:'Desserts' },
+  { id:22, name:'Iced Tea',            price:55,  cat:'Drinks' },
+  { id:23, name:'Coke Float',          price:75,  cat:'Drinks' },
+  { id:24, name:'Fresh Buko Juice',    price:70,  cat:'Drinks' },
+  { id:25, name:'Bottled Water',       price:35,  cat:'Drinks' },
+  { id:26, name:'Hot Coffee',          price:80,  cat:'Drinks' },
+  { id:27, name:'Fruit Shake',         price:95,  cat:'Drinks' },
+];
+
+let sales = JSON.parse(localStorage.getItem('mno_sales') || '[]');
+let menuData = JSON.parse(localStorage.getItem('mno_menu_extra') || '[]');
+let editItemId = null;
+
+// ── CLOCK ─────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── PANEL SWITCHER ────────────────────────────────────────────
+let activeMgrPanel = 'summary';
+
+function setMgrPanel(panel) {
+  activeMgrPanel = panel;
+  ['summary','menu','inventory'].forEach(p => {
+    document.getElementById('mgr-panel-' + p).classList.toggle('hidden', p !== panel);
+    const btn = document.getElementById('mpbtn-' + p);
+    if (p === panel) {
+      btn.className = 'mgr-panel-btn bg-gray-900 text-white rounded-2xl p-5 text-left transition-all hover:opacity-90';
+    } else {
+      btn.className = 'mgr-panel-btn bg-white border border-gray-100 text-gray-800 rounded-2xl p-5 text-left transition-all hover:border-gray-300 hover:shadow-sm';
+    }
+  });
+  if (panel === 'summary') renderManagerLog();
+  if (panel === 'menu') renderMenuManage();
+  if (panel === 'inventory') renderInventory();
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────
+function renderManager() {
+  sales = JSON.parse(localStorage.getItem('mno_sales') || '[]');
+  const todayStr = new Date().toLocaleDateString('en-PH');
+  const todaySales = sales.filter(s => s.date === todayStr);
+  const total = todaySales.reduce((a, s) => a + parseFloat(s.total), 0);
+  document.getElementById('stat-total').textContent = '₱' + total.toFixed(2);
+  document.getElementById('stat-count').textContent = todaySales.length;
+  const df = document.getElementById('sales-date-filter');
+  if (df && !df.value) df.valueAsDate = new Date();
+  renderManagerLog();
+}
+
+function renderManagerLog() {
+  sales = JSON.parse(localStorage.getItem('mno_sales') || '[]');
+  const df = document.getElementById('sales-date-filter');
+  const filterDate = df && df.value
+    ? new Date(df.value).toLocaleDateString('en-PH')
+    : new Date().toLocaleDateString('en-PH');
+  const filtered = [...sales].reverse().filter(s => s.date === filterDate);
+  const log = document.getElementById('manager-log');
+  const empty = document.getElementById('manager-empty');
+  if (filtered.length === 0) {
+    log.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  log.innerHTML = filtered.map(s => `
+    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+      <td class="px-5 py-3 mono text-gray-700">#${s.id}</td>
+      <td class="px-5 py-3 text-gray-600">Table ${s.table}</td>
+      <td class="px-5 py-3 text-gray-400 text-xs">${s.items.map(i => i.name).join(', ')}</td>
+      <td class="px-5 py-3 text-gray-400 mono text-xs">${s.time}</td>
+      <td class="px-5 py-3 text-right mono font-600 text-gray-900">₱${s.total}</td>
+    </tr>
+  `).join('');
+}
+
+// ── MENU MANAGEMENT ───────────────────────────────────────────
+function getAllMenuItems() {
+  return [...MENU, ...menuData];
+}
+
+function renderMenuManage() {
+  menuData = JSON.parse(localStorage.getItem('mno_menu_extra') || '[]');
+  const all = getAllMenuItems();
+  const grouped = {};
+  all.forEach(item => {
+    if (!grouped[item.cat]) grouped[item.cat] = [];
+    grouped[item.cat].push(item);
+  });
+  const container = document.getElementById('menu-manage-list');
+  container.innerHTML = Object.entries(grouped).map(([cat, items]) => `
+    <div class="px-5 py-3 bg-gray-50">
+      <p class="text-xs uppercase tracking-widest text-gray-400 font-500">${cat}</p>
+    </div>
+    ${items.map(item => `
+      <div class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+        <div>
+          <span class="text-sm text-gray-800">${item.name}</span>
+          ${item.custom ? '<span class="text-xs text-blue-400 ml-2 border border-blue-200 rounded px-1.5 py-0.5">Custom</span>' : ''}
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="mono text-sm text-gray-600">₱${item.price}</span>
+          <div class="flex gap-2">
+            <button onclick="openEditItemModal(${item.id})" class="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-lg px-2 py-1">Edit</button>
+            <button onclick="deleteMenuItem(${item.id})" class="text-xs text-red-300 hover:text-red-500 border border-red-100 rounded-lg px-2 py-1">Remove</button>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+function openAddItemModal() {
+  editItemId = null;
+  document.getElementById('add-item-title').textContent = 'New Menu Item';
+  document.getElementById('new-item-name').value = '';
+  document.getElementById('new-item-price').value = '';
+  document.getElementById('new-item-cat').value = 'Mains';
+  document.getElementById('add-item-modal').classList.remove('hidden');
+}
+
+function openEditItemModal(id) {
+  editItemId = id;
+  const item = getAllMenuItems().find(m => m.id === id);
+  if (!item) return;
+  document.getElementById('add-item-title').textContent = 'Edit Menu Item';
+  document.getElementById('new-item-name').value = item.name;
+  document.getElementById('new-item-price').value = item.price;
+  document.getElementById('new-item-cat').value = item.cat;
+  document.getElementById('add-item-modal').classList.remove('hidden');
+}
+
+function closeAddItemModal() {
+  document.getElementById('add-item-modal').classList.add('hidden');
+  editItemId = null;
+}
+
+function saveNewItem() {
+  const name  = document.getElementById('new-item-name').value.trim();
+  const price = parseFloat(document.getElementById('new-item-price').value);
+  const cat   = document.getElementById('new-item-cat').value;
+  if (!name || isNaN(price) || price <= 0) return;
+  menuData = JSON.parse(localStorage.getItem('mno_menu_extra') || '[]');
+  if (editItemId) {
+    const menuIdx = MENU.findIndex(m => m.id === editItemId);
+    if (menuIdx > -1) { MENU[menuIdx].name = name; MENU[menuIdx].price = price; MENU[menuIdx].cat = cat; }
+    const extraIdx = menuData.findIndex(m => m.id === editItemId);
+    if (extraIdx > -1) { menuData[extraIdx].name = name; menuData[extraIdx].price = price; menuData[extraIdx].cat = cat; }
+  } else {
+    const newId = Date.now();
+    menuData.push({ id: newId, name, price, cat, custom: true });
+    MENU.push({ id: newId, name, price, cat, custom: true });
+  }
+  localStorage.setItem('mno_menu_extra', JSON.stringify(menuData));
+  closeAddItemModal();
+  renderMenuManage();
+}
+
+function deleteMenuItem(id) {
+  menuData = menuData.filter(m => m.id !== id);
+  localStorage.setItem('mno_menu_extra', JSON.stringify(menuData));
+  const idx = MENU.findIndex(m => m.id === id);
+  if (idx > -1) MENU.splice(idx, 1);
+  renderMenuManage();
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────
+const ING_CATS = ['All','Proteins','Vegetables','Fruits','Dairy','Grains & Starches','Condiments & Sauces','Oils & Fats','Spices & Herbs','Beverages','Others'];
+let activeIngCat = 'All';
+let editIngId = null;
+
+const DEFAULT_INGREDIENTS = [
+  { id:'i1',  name:'Chicken Breast',     amount:10,  unit:'kg',    cat:'Proteins' },
+  { id:'i2',  name:'Pork Belly',         amount:8,   unit:'kg',    cat:'Proteins' },
+  { id:'i3',  name:'Beef Sirloin',       amount:6,   unit:'kg',    cat:'Proteins' },
+  { id:'i4',  name:'Whole Eggs',         amount:120, unit:'pcs',   cat:'Proteins' },
+  { id:'i5',  name:'Shrimp',             amount:4,   unit:'kg',    cat:'Proteins' },
+  { id:'i6',  name:'Tilapia Fillet',     amount:5,   unit:'kg',    cat:'Proteins' },
+  { id:'i7',  name:'Garlic',             amount:3,   unit:'kg',    cat:'Vegetables' },
+  { id:'i8',  name:'White Onion',        amount:4,   unit:'kg',    cat:'Vegetables' },
+  { id:'i9',  name:'Tomato',             amount:3,   unit:'kg',    cat:'Vegetables' },
+  { id:'i10', name:'Cabbage',            amount:5,   unit:'kg',    cat:'Vegetables' },
+  { id:'i11', name:'Carrots',            amount:3,   unit:'kg',    cat:'Vegetables' },
+  { id:'i12', name:'Mushrooms',          amount:2,   unit:'kg',    cat:'Vegetables' },
+  { id:'i13', name:'Bell Pepper',        amount:2,   unit:'kg',    cat:'Vegetables' },
+  { id:'i14', name:'Kangkong',           amount:3,   unit:'kg',    cat:'Vegetables' },
+  { id:'i15', name:'Calamansi',          amount:2,   unit:'kg',    cat:'Fruits' },
+  { id:'i16', name:'Mango',             amount:5,   unit:'kg',    cat:'Fruits' },
+  { id:'i17', name:'Banana',            amount:3,   unit:'kg',    cat:'Fruits' },
+  { id:'i18', name:'Pineapple',         amount:4,   unit:'pcs',   cat:'Fruits' },
+  { id:'i19', name:'Fresh Milk',         amount:10,  unit:'L',     cat:'Dairy' },
+  { id:'i20', name:'All-Purpose Cream',  amount:12,  unit:'packs', cat:'Dairy' },
+  { id:'i21', name:'Cheddar Cheese',     amount:2,   unit:'kg',    cat:'Dairy' },
+  { id:'i22', name:'Butter',            amount:3,   unit:'kg',    cat:'Dairy' },
+  { id:'i23', name:'White Rice',         amount:50,  unit:'kg',    cat:'Grains & Starches' },
+  { id:'i24', name:'Spaghetti Pasta',    amount:5,   unit:'kg',    cat:'Grains & Starches' },
+  { id:'i25', name:'Breadcrumbs',        amount:3,   unit:'kg',    cat:'Grains & Starches' },
+  { id:'i26', name:'All-Purpose Flour',  amount:5,   unit:'kg',    cat:'Grains & Starches' },
+  { id:'i27', name:'Cornstarch',         amount:2,   unit:'kg',    cat:'Grains & Starches' },
+  { id:'i28', name:'Soy Sauce',          amount:5,   unit:'L',     cat:'Condiments & Sauces' },
+  { id:'i29', name:'Fish Sauce',         amount:3,   unit:'L',     cat:'Condiments & Sauces' },
+  { id:'i30', name:'Oyster Sauce',       amount:4,   unit:'bottles', cat:'Condiments & Sauces' },
+  { id:'i31', name:'Ketchup',           amount:6,   unit:'bottles', cat:'Condiments & Sauces' },
+  { id:'i32', name:'Worcestershire',     amount:2,   unit:'bottles', cat:'Condiments & Sauces' },
+  { id:'i33', name:'Vinegar',           amount:4,   unit:'L',     cat:'Condiments & Sauces' },
+  { id:'i34', name:'Cooking Oil',        amount:10,  unit:'L',     cat:'Oils & Fats' },
+  { id:'i35', name:'Olive Oil',          amount:3,   unit:'L',     cat:'Oils & Fats' },
+  { id:'i36', name:'Margarine',         amount:3,   unit:'kg',    cat:'Oils & Fats' },
+  { id:'i37', name:'Salt',              amount:5,   unit:'kg',    cat:'Spices & Herbs' },
+  { id:'i38', name:'Black Pepper',       amount:1,   unit:'kg',    cat:'Spices & Herbs' },
+  { id:'i39', name:'Bay Leaves',         amount:200, unit:'g',     cat:'Spices & Herbs' },
+  { id:'i40', name:'Paprika',           amount:500, unit:'g',     cat:'Spices & Herbs' },
+  { id:'i41', name:'Chili Flakes',       amount:300, unit:'g',     cat:'Spices & Herbs' },
+  { id:'i42', name:'Rosemary',          amount:200, unit:'g',     cat:'Spices & Herbs' },
+  { id:'i43', name:'Soft Drinks (Coke)',  amount:48,  unit:'cans',  cat:'Beverages' },
+  { id:'i44', name:'Iced Tea Powder',    amount:5,   unit:'kg',    cat:'Beverages' },
+  { id:'i45', name:'Ground Coffee',      amount:3,   unit:'kg',    cat:'Beverages' },
+  { id:'i46', name:'Buko (Young Coconut)',amount:30, unit:'pcs',   cat:'Beverages' },
+  { id:'i47', name:'Sugar',             amount:5,   unit:'kg',    cat:'Others' },
+  { id:'i48', name:'Ice',               amount:20,  unit:'kg',    cat:'Others' },
+  { id:'i49', name:'Foil & Cling Wrap', amount:10,  unit:'packs', cat:'Others' },
+];
+
+function getIngredients() {
+  const saved = localStorage.getItem('mno_ingredients');
+  if (!saved) {
+    localStorage.setItem('mno_ingredients', JSON.stringify(DEFAULT_INGREDIENTS));
+    return DEFAULT_INGREDIENTS;
+  }
+  return JSON.parse(saved);
+}
+
+function saveIngredients(data) {
+  localStorage.setItem('mno_ingredients', JSON.stringify(data));
+}
+
+function renderInventory() {
+  const ingredients = getIngredients();
+  const tabsEl = document.getElementById('inv-cat-tabs');
+  tabsEl.innerHTML = ING_CATS.map(c => `
+    <button onclick="setIngCat('${c}')" id="ingtab-${c.replace(/[^a-zA-Z]/g,'_')}"
+      class="px-3 py-1.5 rounded-lg text-xs font-500 transition-all whitespace-nowrap
+      ${c === activeIngCat ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-400'}">
+      ${c}
+    </button>
+  `).join('');
+  renderIngredientList(ingredients);
+}
+
+function setIngCat(cat) {
+  activeIngCat = cat;
+  renderInventory();
+}
+
+function renderIngredientList(ingredients) {
+  const filtered = activeIngCat === 'All' ? ingredients : ingredients.filter(i => i.cat === activeIngCat);
+  const container = document.getElementById('ingredient-list');
+  const empty = document.getElementById('inventory-empty');
+  if (filtered.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = filtered.map(ing => `
+    <div class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+      <div>
+        <span class="text-sm text-gray-800">${ing.name}</span>
+        <span class="text-xs text-gray-400 ml-2">${ing.cat}</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1">
+          <button onclick="adjustAmount('${ing.id}', -1)" class="w-6 h-6 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-100 text-xs flex items-center justify-center">−</button>
+          <span class="mono text-sm text-gray-700 w-16 text-center">${ing.amount} ${ing.unit}</span>
+          <button onclick="adjustAmount('${ing.id}', 1)" class="w-6 h-6 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-100 text-xs flex items-center justify-center">+</button>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openEditIngredientModal('${ing.id}')" class="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-lg px-2 py-1">Edit</button>
+          <button onclick="deleteIngredient('${ing.id}')" class="text-xs text-red-300 hover:text-red-500 border border-red-100 rounded-lg px-2 py-1">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adjustAmount(id, delta) {
+  const ings = getIngredients();
+  const ing = ings.find(i => i.id === id);
+  if (ing) { ing.amount = Math.max(0, ing.amount + delta); saveIngredients(ings); renderIngredientList(ings); }
+}
+
+function openAddIngredientModal() {
+  editIngId = null;
+  document.getElementById('add-ingredient-title').textContent = 'Add Ingredient';
+  document.getElementById('ing-name').value = '';
+  document.getElementById('ing-amount').value = '';
+  document.getElementById('ing-unit').value = 'kg';
+  document.getElementById('ing-cat').value = 'Proteins';
+  document.getElementById('add-ingredient-modal').classList.remove('hidden');
+}
+
+function openEditIngredientModal(id) {
+  editIngId = id;
+  const ing = getIngredients().find(i => i.id === id);
+  if (!ing) return;
+  document.getElementById('add-ingredient-title').textContent = 'Edit Ingredient';
+  document.getElementById('ing-name').value = ing.name;
+  document.getElementById('ing-amount').value = ing.amount;
+  document.getElementById('ing-unit').value = ing.unit;
+  document.getElementById('ing-cat').value = ing.cat;
+  document.getElementById('add-ingredient-modal').classList.remove('hidden');
+}
+
+function closeAddIngredientModal() {
+  document.getElementById('add-ingredient-modal').classList.add('hidden');
+  editIngId = null;
+}
+
+function saveIngredient() {
+  const name   = document.getElementById('ing-name').value.trim();
+  const amount = parseFloat(document.getElementById('ing-amount').value);
+  const unit   = document.getElementById('ing-unit').value;
+  const cat    = document.getElementById('ing-cat').value;
+  if (!name || isNaN(amount)) return;
+  const ings = getIngredients();
+  if (editIngId) {
+    const idx = ings.findIndex(i => i.id === editIngId);
+    if (idx > -1) { ings[idx].name = name; ings[idx].amount = amount; ings[idx].unit = unit; ings[idx].cat = cat; }
+  } else {
+    ings.push({ id: 'i' + Date.now(), name, amount, unit, cat });
+  }
+  saveIngredients(ings);
+  closeAddIngredientModal();
+  renderInventory();
+}
+
+function deleteIngredient(id) {
+  const ings = getIngredients().filter(i => i.id !== id);
+  saveIngredients(ings);
+  renderInventory();
+}
+
+// ── POLL ──────────────────────────────────────────────────────
+let lastSnapshot = localStorage.getItem('mno_sales') || '[]';
+setInterval(() => {
+  const current = localStorage.getItem('mno_sales') || '[]';
+  if (current !== lastSnapshot) {
+    lastSnapshot = current;
+    renderManager();
+  }
+}, 5000);
+
+// ── INIT ──────────────────────────────────────────────────────
+renderManager();
+</script>
+</body>
+</html>

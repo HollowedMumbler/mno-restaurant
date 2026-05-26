@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MNO – Cashier Station</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family: 'DM Sans', sans-serif; }
+  .mono { font-family: 'DM Mono', monospace; }
+  .badge-pending { background:#FEF3C7; color:#92400E; }
+  .badge-confirmed { background:#DBEAFE; color:#1E40AF; }
+  .badge-ready { background:#D1FAE5; color:#065F46; }
+  .badge-done { background:#F3F4F6; color:#6B7280; }
+  .badge-returned { background:#FEE2E2; color:#B91C1C; }
+  .badge-notify_waiter { background:#FEF3C7; color:#92400E; }
+  .badge-delivered { background:#D1FAE5; color:#065F46; }
+  .fade-in { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Top Bar -->
+<header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div>
+      <span class="text-lg font-600 tracking-tight text-gray-900">MNO</span>
+      <span class="text-lg font-300 text-gray-400 ml-1">Restaurant</span>
+      <span class="ml-3 text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full font-500">Cashier</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <nav class="flex gap-3 text-sm text-gray-400">
+        <a href="waiter.html" class="hover:text-gray-700 transition-colors">Waiter</a>
+        <a href="kitchen.html" class="hover:text-gray-700 transition-colors">Kitchen</a>
+        <a href="manager.html" class="hover:text-gray-700 transition-colors">Manager</a>
+      </nav>
+      <div class="text-sm text-gray-400 mono" id="clock"></div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-6 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-600 text-gray-900">Cashier Station</h1>
+      <p class="text-sm text-gray-400 mt-0.5">Confirm orders, send to kitchen, and process payment.</p>
+    </div>
+    <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+      <button onclick="setCashierTab('orders')" id="ctab-orders"
+        class="px-4 py-1.5 rounded-lg text-sm font-500 transition-all bg-gray-900 text-white">
+        Active Orders
+      </button>
+      <button onclick="setCashierTab('history')" id="ctab-history"
+        class="px-4 py-1.5 rounded-lg text-sm font-500 transition-all text-gray-500 hover:text-gray-700">
+        History
+      </button>
+    </div>
+  </div>
+
+  <!-- Active Orders Panel -->
+  <div id="cashier-panel-orders">
+    <div id="cashier-orders" class="space-y-4"></div>
+    <div id="cashier-empty" class="text-center py-20 text-gray-300 text-sm">No pending orders</div>
+  </div>
+
+  <!-- History Panel -->
+  <div id="cashier-panel-history" class="hidden">
+    <div class="flex items-center gap-3 mb-4">
+      <input id="history-search" oninput="renderHistory()" type="text" placeholder="Search by order # or table…"
+        class="border border-gray-200 rounded-xl px-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-gray-200"/>
+      <span class="text-sm text-gray-400" id="history-count"></span>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
+            <th class="text-left px-5 py-3">Order #</th>
+            <th class="text-left px-5 py-3">Table</th>
+            <th class="text-left px-5 py-3">Items</th>
+            <th class="text-left px-5 py-3">Time</th>
+            <th class="text-right px-5 py-3">Total</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody id="history-log"></tbody>
+      </table>
+      <div id="history-empty" class="text-center py-12 text-gray-300 text-sm">No transactions found</div>
+    </div>
+  </div>
+</main>
+
+<!-- Receipt Modal -->
+<div id="receipt-modal" class="hidden fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-xs uppercase tracking-widest text-gray-400 mono">Receipt</p>
+      <span id="receipt-reprint-badge" class="hidden text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-500">Reprint</span>
+    </div>
+    <div id="receipt-content"></div>
+    <button onclick="closeReceipt()" class="mt-4 w-full border border-gray-200 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Close</button>
+  </div>
+</div>
+
+<script>
+// ── SHARED DATA ───────────────────────────────────────────────
+let orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
+let sales  = JSON.parse(localStorage.getItem('mno_sales')  || '[]');
+
+function save() {
+  localStorage.setItem('mno_orders', JSON.stringify(orders));
+  localStorage.setItem('mno_sales',  JSON.stringify(sales));
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── TAB SWITCHER ──────────────────────────────────────────────
+function setCashierTab(tab) {
+  const isOrders = tab === 'orders';
+  document.getElementById('cashier-panel-orders').classList.toggle('hidden', !isOrders);
+  document.getElementById('cashier-panel-history').classList.toggle('hidden', isOrders);
+  document.getElementById('ctab-orders').className = `px-4 py-1.5 rounded-lg text-sm font-500 transition-all ${isOrders ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`;
+  document.getElementById('ctab-history').className = `px-4 py-1.5 rounded-lg text-sm font-500 transition-all ${!isOrders ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`;
+  if (!isOrders) renderHistory();
+}
+
+// ── CASHIER RENDER ────────────────────────────────────────────
+function renderCashier() {
+  orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
+  const pending = orders.filter(o => ['pending','confirmed','ready','returned','notify_waiter','delivered'].includes(o.status));
+  const container = document.getElementById('cashier-orders');
+  const empty = document.getElementById('cashier-empty');
+
+  if (pending.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  container.innerHTML = pending.map(o => `
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="mono text-lg font-600 text-gray-900">#${o.id}</span>
+          <span class="text-sm text-gray-400">Table ${o.table} · ${o.time}</span>
+        </div>
+        <span class="text-xs px-3 py-1 rounded-full font-500 badge-${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span>
+      </div>
+      <div class="space-y-1 mb-4">
+        ${o.items.map(i => `
+          <div class="flex justify-between text-sm">
+            <div>
+              <span class="${i.unavailable ? 'line-through text-gray-300' : 'text-gray-600'}">${i.name} <span class="text-gray-400">×${i.qty}</span>${i.unavailable ? ' <span class="text-xs text-red-400 font-500">Unavailable</span>' : ''}</span>
+              ${i.remark && !i.unavailable ? `<p class="text-xs text-amber-600">📝 ${i.remark}</p>` : ''}
+            </div>
+            <span class="mono ${i.unavailable ? 'text-gray-300 line-through' : 'text-gray-500'}">₱${i.price * i.qty}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="border-t border-gray-100 pt-3 flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          Subtotal <span class="mono text-gray-700">₱${o.sub}</span> &nbsp;·&nbsp;
+          Tax <span class="mono text-gray-700">₱${o.tax}</span> &nbsp;·&nbsp;
+          <span class="font-600 text-gray-900 mono">₱${o.total}</span>
+        </div>
+        <div class="flex gap-2">
+          ${o.status === 'pending' ? `<button onclick="confirmOrder(${o.id})" class="bg-gray-900 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">Confirm & Send to Kitchen</button>` : ''}
+          ${o.status === 'ready' || o.status === 'delivered' ? `<button onclick="processPayment(${o.id})" class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">Process Payment</button>` : ''}
+          ${o.status === 'confirmed' ? `<span class="text-xs text-blue-400 italic">In kitchen…</span>` : ''}
+          ${o.status === 'returned' ? `<button onclick="notifyWaiter(${o.id})" class="bg-red-500 text-white text-xs px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">Notify Waiter</button>` : ''}
+          ${o.status === 'notify_waiter' ? `<span class="text-xs text-amber-500 italic">Waiter notified…</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function confirmOrder(id) {
+  const o = orders.find(o => o.id === id);
+  if (o) { o.status = 'confirmed'; save(); renderCashier(); }
+}
+
+function notifyWaiter(id) {
+  const o = orders.find(o => o.id === id);
+  if (o) { o.status = 'notify_waiter'; save(); renderCashier(); }
+}
+
+function processPayment(id) {
+  const o = orders.find(o => o.id === id);
+  if (!o) return;
+  o.status = 'done';
+  sales = JSON.parse(localStorage.getItem('mno_sales') || '[]');
+  sales.push({ ...o, paidAt: new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' }) });
+  orders = orders.filter(x => x.id !== id);
+  save();
+  showReceipt(o);
+  renderCashier();
+}
+
+function showReceipt(o, isReprint = false) {
+  if (typeof o === 'string') o = JSON.parse(o);
+  const badge = document.getElementById('receipt-reprint-badge');
+  isReprint ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+  document.getElementById('receipt-content').innerHTML = `
+    <div class="text-center mb-4">
+      <p class="font-600 text-gray-900">MNO Restaurant</p>
+      <p class="text-xs text-gray-400 mono">${o.date} · ${o.time}</p>
+    </div>
+    <p class="text-xs text-gray-400 mb-2 mono">Receipt #${o.id} · Table ${o.table}</p>
+    <div class="space-y-1.5 mb-3">
+      ${o.items.map(i => `
+        <div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">${i.name} ×${i.qty}</span>
+            <span class="mono">₱${i.price * i.qty}</span>
+          </div>
+          ${i.remark ? `<p class="text-xs text-amber-600 mt-0.5 pl-1">📝 ${i.remark}</p>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="border-t border-gray-100 pt-2 space-y-1">
+      <div class="flex justify-between text-xs text-gray-400"><span>Subtotal</span><span class="mono">₱${o.sub}</span></div>
+      <div class="flex justify-between text-xs text-gray-400"><span>VAT (12%)</span><span class="mono">₱${o.tax}</span></div>
+      <div class="flex justify-between font-600 text-gray-900 mt-1"><span>TOTAL</span><span class="mono">₱${o.total}</span></div>
+    </div>
+    <p class="text-center text-xs text-gray-300 mt-4">${isReprint ? 'Reprint copy' : 'Thank you for dining with us!'}</p>
+  `;
+  document.getElementById('receipt-modal').classList.remove('hidden');
+}
+
+function closeReceipt() {
+  document.getElementById('receipt-modal').classList.add('hidden');
+}
+
+function renderHistory() {
+  sales = JSON.parse(localStorage.getItem('mno_sales') || '[]');
+  const q = (document.getElementById('history-search')?.value || '').toLowerCase();
+  const filtered = [...sales].reverse().filter(s =>
+    !q || String(s.id).includes(q) || String(s.table).includes(q)
+  );
+  document.getElementById('history-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('history-log');
+  const empty = document.getElementById('history-empty');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = filtered.map(s => `
+    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onclick="showReceipt(${JSON.stringify(s).replace(/"/g,'&quot;')}, true)">
+      <td class="px-5 py-3 mono text-gray-700">#${s.id}</td>
+      <td class="px-5 py-3 text-gray-600">Table ${s.table}</td>
+      <td class="px-5 py-3 text-gray-400 text-xs">${s.items.map(i => i.name).join(', ')}</td>
+      <td class="px-5 py-3 text-gray-400 mono text-xs">${s.time}</td>
+      <td class="px-5 py-3 text-right mono font-600 text-gray-900">₱${s.total}</td>
+      <td class="px-5 py-3 text-right">
+        <span class="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-lg px-2 py-1">View</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── POLL ──────────────────────────────────────────────────────
+let lastSnapshot = localStorage.getItem('mno_orders') || '[]';
+setInterval(() => {
+  const current = localStorage.getItem('mno_orders') || '[]';
+  if (current !== lastSnapshot) {
+    lastSnapshot = current;
+    renderCashier();
+  }
+}, 5000);
+
+// ── INIT ──────────────────────────────────────────────────────
+renderCashier();
+</script>
+</body>
+</html>

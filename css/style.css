@@ -1,0 +1,19 @@
+  * { font-family: 'DM Sans', sans-serif; }
+  .mono { font-family: 'DM Mono', monospace; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .role-btn { transition: all 0.15s ease; }
+  .role-btn.active { background: #111827; color: white; }
+  .badge-pending { background:#FEF3C7; color:#92400E; }
+  .badge-confirmed { background:#DBEAFE; color:#1E40AF; }
+  .badge-ready { background:#D1FAE5; color:#065F46; }
+  .badge-done { background:#F3F4F6; color:#6B7280; }
+  .badge-returned { background:#FEE2E2; color:#B91C1C; }
+  .badge-notify_waiter { background:#FEF3C7; color:#92400E; }
+  .badge-delivered { background:#D1FAE5; color:#065F46; }
+  .fade-in { animation: fadeIn 0.2s ease; }
+  .notif-dot { position:absolute; top:-4px; right:-4px; width:10px; height:10px; background:#EF4444; border-radius:50%; border:2px solid #F9FAFB; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
