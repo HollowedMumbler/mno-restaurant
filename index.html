@@ -420,12 +420,6 @@ function renderWaiterAlerts() {
   }
 }
 
-function confirmPickup(id) {
-  orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
-  const o = orders.find(o => o.id === id);
-  if (o) { o.status = 'picked_up'; save(); renderWaiterAlerts(); }
-}
-
 
 function acknowledgeReturn(id) {
 }
