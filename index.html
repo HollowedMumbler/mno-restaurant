@@ -346,6 +346,7 @@ function showToast(msg) {
 // ── WAITER ALERTS & READY SECTION ────────────────────────────
 function renderWaiterAlerts() {
   orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
+ 
 
   // Returned / unavailable alerts
   const returned = orders.filter(o => o.status === 'notify_waiter');
@@ -394,7 +395,7 @@ function renderWaiterAlerts() {
     if (notifDot) notifDot.classList.remove('hidden');
     if (readyContainer) {
       readyContainer.innerHTML = ready.map(o => `
-        <div class="bg-white border-2 border-green-200 rounded-2xl p-5 fade-in">
+        <<div data-order-id="${o.id}" class="bg-white border-2 border-green-200 rounded-2xl p-5 fade-in">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
@@ -419,15 +420,10 @@ function renderWaiterAlerts() {
     }
   }
 }
-
 function confirmPickup(id) {
-  orders = JSON.parse(localStorage.getItem('mno_orders') || '[]');
-  const o = orders.find(o => o.id === id);
-   if (o) { o.status = 'picked_up'; save(); renderWaiterAlerts(); }
-
+  document.querySelectorAll('[data-order-id="' + id + '"]').forEach(el => el.remove());
+  renderWaiterAlerts();
 }
-
-
 function acknowledgeReturn(id) {
 }
 
