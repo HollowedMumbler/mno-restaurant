@@ -175,8 +175,8 @@ function renderCashier() {
         </div>
         <div class="flex gap-2">
           ${o.status === 'pending' ? `<button onclick="confirmOrder(${o.id})" class="bg-gray-900 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">Confirm & Send to Kitchen</button>` : ''}
-          ${o.status === 'ready' || o.status === 'delivered' || o.status === 'picked_up' ? `<button onclick="processPayment(${o.id})" ...>Process Payment</button>` : ''} class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">Process Payment</button>` : ''}
-          ${o.status === 'confirmed' ? `<span class="text-xs text-blue-400 italic">In kitchen…</span>` : ''}
+${o.status === 'ready' || o.status === 'delivered' || o.status === 'picked_up' ? `<button onclick="processPayment(${o.id})" class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">Process Payment</button>` : ''}
+${o.status === 'confirmed' ? `<span class="text-xs text-blue-400 italic">In kitchen…</span>` : ''}
           ${o.status === 'returned' ? `<button onclick="notifyWaiter(${o.id})" class="bg-red-500 text-white text-xs px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">Notify Waiter</button>` : ''}
           ${o.status === 'notify_waiter' ? `<span class="text-xs text-amber-500 italic">Waiter notified…</span>` : ''}
         </div>
